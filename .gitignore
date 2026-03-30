@@ -1,0 +1,9 @@
+flink-dist/
+models/
+flink-version/
+connectors/
+streampark-config/
+streampark-data/
+plugins/
+streampark/
+flink-versions/

@@ -1,0 +1,55 @@
+# Dockerfile.flink
+FROM flink:1.19.1-scala_2.12-java11
+
+# Switch to root to install OS dependencies
+USER root
+
+# Install OpenMP runtime required by xgboost4j, plus curl and wget for healthchecks
+RUN apt-get update && apt-get install -y \
+    libgomp1 \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create plugins directory if it doesn't exist
+RUN mkdir -p /opt/flink/plugins/connectors
+
+# Copy ALL connector JARs into Flink lib (JobManager + TaskManagers)
+# This ensures connectors are available at startup for all components
+COPY ./connectors/*.jar /opt/flink/lib/
+
+# Also copy to plugins directory for SQL Gateway
+# Using a simple shell command to copy without bash errors
+RUN cp /opt/flink/lib/*.jar /opt/flink/plugins/connectors/ 2>/dev/null || true
+
+# Set proper permissions
+RUN chown -R flink:flink /opt/flink/lib/ && \
+    chown -R flink:flink /opt/flink/plugins/
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+echo "[INFO] Copying connector JARs from plugins to lib..."\n\
+cp -v /opt/flink/plugins/connectors/*.jar /opt/flink/lib/ 2>/dev/null || true\n\
+\n\
+echo "[INFO] Available connectors in lib:"\n\
+ls -la /opt/flink/lib/*.jar 2>/dev/null | wc -l | xargs echo "Total JARs:"\n\
+\n\
+# Start Flink based on role\n\
+if [ "$1" = "jobmanager" ]; then\n\
+    echo "[INFO] Starting Flink JobManager..."\n\
+    /opt/flink/bin/jobmanager.sh start-foreground\n\
+elif [ "$1" = "taskmanager" ]; then\n\
+    echo "[INFO] Starting Flink TaskManager..."\n\
+    /opt/flink/bin/taskmanager.sh start-foreground\n\
+else\n\
+    echo "[INFO] Starting Flink SQL Gateway..."\n\
+    /opt/flink/bin/sql-gateway.sh start-foreground\n\
+fi' > /opt/flink/bin/entrypoint.sh
+
+RUN chmod +x /opt/flink/bin/entrypoint.sh
+
+# Switch back to Flink user
+USER flink
+
+# Set entrypoint
+ENTRYPOINT ["/opt/flink/bin/entrypoint.sh"]
