@@ -15,11 +15,17 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /opt/flink/plugins/connectors
 
 # Copy ALL connector JARs into Flink lib (JobManager + TaskManagers)
-# This ensures connectors are available at startup for all components
 COPY ./connectors/*.jar /opt/flink/lib/
 
+# ── Str:::Beam Engine patch ──────────────────────────────────────────
+# Copy patched runtime JARs — these must be present on ALL nodes.
+# The snapshot runtime replaces the official flink-dist runtime for
+# multi-tenancy support. Both files must exist in the build context.
+COPY flink-runtime-2.0-SNAPSHOT.jar /opt/flink/lib/flink-runtime-2.0-SNAPSHOT.jar
+COPY flink-sql-gateway-2.0-SNAPSHOT.jar /opt/flink/lib/flink-sql-gateway-2.0-SNAPSHOT.jar
+# ────────────────────────────────────────────────────────────────────
+
 # Also copy to plugins directory for SQL Gateway
-# Using a simple shell command to copy without bash errors
 RUN cp /opt/flink/lib/*.jar /opt/flink/plugins/connectors/ 2>/dev/null || true
 
 # Set proper permissions
@@ -51,5 +57,4 @@ RUN chmod +x /opt/flink/bin/entrypoint.sh
 # Switch back to Flink user
 USER flink
 
-# Set entrypoint
 ENTRYPOINT ["/opt/flink/bin/entrypoint.sh"]
