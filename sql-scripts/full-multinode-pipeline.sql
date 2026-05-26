@@ -23,7 +23,7 @@
 --   • stdout log: trade summaries printed to TaskManager logs
 --
 -- HOW TO RUN:
---   1. Open FlinkSQL Studio at http://localhost:3030
+--   1. Open Str:::Lab Studio at http://localhost:3030
 --   2. Connect (Proxy mode)
 --   3. Paste STEP 0 in Tab 1 and run (sets up session)
 --   4. Paste STEP 1–6 in Tab 1 and run (creates all tables)

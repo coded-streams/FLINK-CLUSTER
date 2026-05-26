@@ -1,5 +1,5 @@
 # Dockerfile.flink
-FROM flink:1.19.1-scala_2.12-java11
+FROM flink:2.0.0-scala_2.12-java17
 
 # Switch to root to install OS dependencies
 USER root
